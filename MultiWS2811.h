@@ -1,6 +1,6 @@
 /*  MultiWS2811 - High performance library to control 128 channels of WS2811 LEDs
     simultaniously through shift registers and multiplexers.
-	Copyright (c) 2018 Emiel Harmsen
+    Copyright (c) 2018 Emiel Harmsen
     Based on OctoWS2811 by Paul Stoffregen
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
