@@ -1,19 +1,19 @@
 {
-  "name": "OctoWS2811",
+  "name": "MultiWS2811",
   "frameworks": "Arduino",
   "platforms": "Teensy",
   "keywords": "serial",
-  "description": "Control thousands of WS2811/2812 LEDs at video refresh speeds",
-  "homepage": "http://www.pjrc.com/teensy/td_libs_OctoWS2811.html",
+  "description": "Control more WS2812B / NeoPixel LEDs at higher refresh speeds",
+  "homepage": "https://github.com/emielch/MultiWS2811",
   "authors":
   {
-    "name": "Paul Stoffregen",
+    "name": "Emiel Harmsen",
     "maintainer": true
   },
   "repository":
   {
       "type": "git",
-      "url": "https://github.com/PaulStoffregen/OctoWS2811"
+      "url": "https://github.com/emielch/MultiWS2811"
   },
-  "version": "1.4"
+  "version": "1.0"
 }
