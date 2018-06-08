@@ -12,7 +12,11 @@ This means that like OctoWS2811, there is minimal CPU impact, which allows the C
 The board uses 16 74AHCT595 shift registers, to which the data from memory is copied in parallel using DMA transfers.
 32 74AHC157 multiplexers are used to switch the outputs between the data from the shift registers and an temporally aligned PWM signal to construct the constant high and low parts of the WS2811 protocol.
 Also, 2 74AHCT245 buffers are used to buffer the data clock, latch clock and the high low signal for the multiplexers, as I wasn't sure if the outputs on the Teensy are able to drive that many IC's directly (better safe than sorry).
+The schematic can be found [here](board/schematic.pdf).
 
 The maximum amount of LEDs is currently limited to around 42240 by the amount of RAM on the Teensy 3.6.
 The advantage of having 128 channels as opposed to 8 (max that OctoWS2811 allows), is the ability to achieve higher frame rates when using a lot of LEDs. For example; if you want at least 60 Hz, with 8 channels you're limited to 4416 LEDs, with 128 channels you can push it to the limit of 42240 LEDs and still achieve a frame rate of 100 Hz.
 
+
+![Demo using just one channel](board/foto_demo.jpg)
+![Front view](board/foto_front.jpg)
