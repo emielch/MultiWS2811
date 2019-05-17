@@ -203,17 +203,17 @@ void MultiWS2811::isr(void)
 		update_in_progress = 0;
 
 		if (!update_ready) {
-			Serial.println("ISR transfer again");
 			fillFrameBuffer();
+			update_in_progress = 1;
 			transfer(0);
-		}else Serial.println("ISR stop transfer");
+		}
 	}
 }
 
 void MultiWS2811::show(void)
 {
 	update_ready = 1;
-	memcpy(copyBuffer, drawBuffer, stripLen * 24);
+	memcpy(copyBuffer, drawBuffer, stripLen * 384);
 	while (update_in_progress);
 	update_ready = 0;
 
@@ -301,7 +301,7 @@ void MultiWS2811::fillFrameBuffer()
 
 	const uint8_t *ditheredLUT = gammaTable + (ditherCycle << 8);
 
-	for (int num = 0; num < stripLen * 8; num++) {
+	for (int num = 0; num < stripLen * 128; num++) {
 		int color;
 
 		switch (params & 7) {

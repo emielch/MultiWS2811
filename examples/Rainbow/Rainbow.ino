@@ -48,7 +48,7 @@
 
 #include <MultiWS2811.h>
 
-const int ledsPerStrip = 30;
+const int ledsPerStrip = 60;
 
 DMAMEM int displayMemory[ledsPerStrip*96];
 COL_RGB copyMemory[ledsPerStrip * 128];
@@ -104,7 +104,6 @@ void rainbow(int phaseShift, int cycleTime)
       }
     }
     leds.show();
-	Serial.println("LOOP");
     digitalWrite(1, LOW);
     delayMicroseconds(wait);
   }
