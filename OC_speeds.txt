@@ -1,0 +1,34 @@
+----  180 mhz normal speed ----
+
+mod = 5 - 10mhz
+DMA randomly skips
+
+
+----  192 mhz overclock ----
+
+mod = 5 - 10mhz
+DMA keeps up
+
+
+
+----  240 mhz overclock ----
+
+mod = 5 - 10mhz
+DMA keeps up  -- some flickering noticable on 2-3 outputs on each of the 4 sides of the board (symmetrical) during rainbow, needs investigating
+
+mod = 4 - 12mhz
+DMA randomly skips
+
+mod = 3 - 15mhz
+DMA consistently skips
+
+mod = 2 - 20mhz
+DMA consistently skips
+
+
+
+
+mod 8 = 0.83333 MHz
+mod 7 = 0.9375 	MHz
+mod 6 = 1.07142 MHz
+mod 5 = 1.250 	MHz
