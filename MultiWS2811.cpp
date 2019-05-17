@@ -24,38 +24,44 @@
 
 #include <string.h>
 #include "MultiWS2811.h"
+#include "gamma.h"
 
 #define _DEBUG
 
 MultiWS2811* MultiWS2811::multiWS2811;
 uint16_t MultiWS2811::stripLen;
+uint8_t MultiWS2811::ditherCycle;
 void * MultiWS2811::frameBuffer;
-void * MultiWS2811::drawBuffer;
+COL_RGB * MultiWS2811::copyBuffer;
+COL_RGB * MultiWS2811::drawBuffer;
 uint8_t MultiWS2811::params;
 DMAChannel MultiWS2811::dma1;
 uint16_t MultiWS2811::currentTransferEndLed;
 
 static volatile uint8_t update_in_progress = 0;
+static volatile uint8_t update_ready = 0;
 static uint32_t update_completed_at = 0;
 
 
-MultiWS2811::MultiWS2811(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config)
+MultiWS2811::MultiWS2811(uint32_t numPerStrip, void *frameBuf, COL_RGB *copyBuf, COL_RGB *drawBuf, uint8_t config)
 {
 	stripLen = numPerStrip;
 	frameBuffer = frameBuf;
+	copyBuffer = copyBuf;
 	drawBuffer = drawBuf;
 	params = config;
 }
 
-
-void MultiWS2811::begin(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config)
+void MultiWS2811::begin(uint32_t numPerStrip, void *frameBuf, COL_RGB *copyBuf, COL_RGB *drawBuf, uint8_t config)
 {
 	stripLen = numPerStrip;
 	frameBuffer = frameBuf;
+	copyBuffer = copyBuf;
 	drawBuffer = drawBuf;
 	params = config;
 	begin();
 }
+
 
 void MultiWS2811::begin(void)
 {
@@ -64,14 +70,11 @@ void MultiWS2811::begin(void)
 	uint32_t bufsize;
 	bufsize = stripLen * 384;
 
+	ditherCycle = 0;
+
 	// set up the buffers
 	memset(frameBuffer, 0, bufsize);
-	if (drawBuffer) {
-		memset(drawBuffer, 0, bufsize);
-	}
-	else {
-		drawBuffer = frameBuffer;
-	}
+	memset(drawBuffer, 0, bufsize);
 
 	// configure the 16 output pins
 	GPIOC_PCOR = 0xFF;
@@ -102,7 +105,7 @@ void MultiWS2811::begin(void)
 	// 6.6 MHz
 	FTM1_SC = 0;   // stop the timer // 45.4.3 Status And Control (FTMx_SC) p.1144
 	FTM1_CNT = 0;  // Writing any value to COUNT updates the counter with its initial value, CNTIN.  // 45.4.4 Counter (FTMx_CNT) p.1145
-	FTM1_MOD = 5;  // count to this value // 45.4.5 Modulo (FTMx_MOD) p.1146 // After the FTM counter reaches the modulo value, the overflow flag (TOF) becomes set at the next clock.
+	FTM1_MOD = 7;  // count to this value // 45.4.5 Modulo (FTMx_MOD) p.1146 // After the FTM counter reaches the modulo value, the overflow flag (TOF) becomes set at the next clock.
 	
 	// DMA trigger
 	FTM1_C0SC = FTM_CSC_MSB | FTM_CSC_ELSB | FTM_CSC_DMA | FTM_CSC_CHIE;   // 45.4.6 Channel (n) Status And Control (FTMx_CnSC) p.1147  // Edge-Aligned PWM - High-true pulses (clear Output on match) 
@@ -193,40 +196,37 @@ void MultiWS2811::isr(void)
 	dma1.clearInterrupt();
 	
 	if (currentTransferEndLed < stripLen) {
-		multiWS2811->transfer(currentTransferEndLed);
+		transfer(currentTransferEndLed);
 	}
 	else {
 		update_completed_at = micros();
 		update_in_progress = 0;
+
+		if (!update_ready) {
+			Serial.println("ISR transfer again");
+			fillFrameBuffer();
+			transfer(0);
+		}else Serial.println("ISR stop transfer");
 	}
 }
 
 void MultiWS2811::show(void)
 {
-	// wait for any prior DMA operation
-	//Serial1.print("1");
+	update_ready = 1;
+	memcpy(copyBuffer, drawBuffer, stripLen * 24);
 	while (update_in_progress);
-	//Serial1.print("2");
-	// it's ok to copy the drawing buffer to the frame buffer
-	// during the 50us WS2811 reset time
-	if (drawBuffer != frameBuffer) {
-		// TODO: this could be faster with DMA, especially if the
-		// buffers are 32 bit aligned... but does it matter?
-		memcpy(frameBuffer, drawBuffer, stripLen * 384);
-	}
-	// wait for WS2811 reset
-	while (micros() - update_completed_at < 300);
-	// ok to start, but we must be very careful to begin
-	// without any prior 3 x 800kHz DMA requests pending
-	
+	update_ready = 0;
 
+	fillFrameBuffer();
 	update_in_progress = 1;
-
 	transfer(0);
 }
 
 void MultiWS2811::transfer(uint16_t fromLed)
 {
+	if(fromLed == 0)
+		while (micros() - update_completed_at < 300);
+
 	// determine the amount of leds to transfer
 	uint16_t remainingLEDs = stripLen - fromLed;
 	uint16_t transferLen = remainingLEDs;
@@ -291,85 +291,61 @@ void MultiWS2811::transfer(uint16_t fromLed)
 }
 
 
-void MultiWS2811::setPixel(uint32_t num, int color)
+void MultiWS2811::fillFrameBuffer()
 {
 	uint32_t shiftreg, strip_shift, strip, offset, mask;
 	uint16_t bit, *p;
 
-	switch (params & 7) {
-	case WS2811_RBG:
-		color = (color & 0xFF0000) | ((color << 8) & 0x00FF00) | ((color >> 8) & 0x0000FF);
-		break;
-	case WS2811_GRB:
-		color = ((color << 8) & 0xFF0000) | ((color >> 8) & 0x00FF00) | (color & 0x0000FF);
-		break;
-	case WS2811_GBR:
-		color = ((color << 16) & 0xFF0000) | ((color >> 8) & 0x00FFFF);
-		break;
-	case WS2811_BRG:
-		color = ((color << 8) & 0xFFFF00) | ((color >> 16) & 0x0000FF);
-		break;
-	case WS2811_BGR:
-		color = ((color << 16) & 0xFF0000) | (color & 0x00FF00) | ((color >> 16) & 0x0000FF);
-		break;
-	default:
-		break;
-	}
-	strip = num / stripLen; // global strip idx
-	shiftreg = strip / 8;
-	strip_shift = 7 - strip % 8; // strip idx on shiftreg
-	offset = num % stripLen;
+	ditherCycle++;
+	if (ditherCycle > (1 << DITHER_BITS) - 1) ditherCycle = 0;
 
-	bit = (1 << shiftreg);
-	p = ((uint16_t *)drawBuffer) + offset * 192 + strip_shift;
-	for (mask = (1 << 23); mask; mask >>= 1) {
-		if (color & mask) {
-			*p |= bit;
+	const uint8_t *ditheredLUT = gammaTable + (ditherCycle << 8);
+
+	for (int num = 0; num < stripLen * 8; num++) {
+		int color;
+
+		switch (params & 7) {
+		case WS2811_RBG:
+			color = ditheredLUT[copyBuffer[num].r] << 16 | ditheredLUT[copyBuffer[num].g] | ditheredLUT[copyBuffer[num].b] << 8;
+			break;
+		case WS2811_GRB:
+			color = ditheredLUT[copyBuffer[num].r] << 8 | ditheredLUT[copyBuffer[num].g] << 16 | ditheredLUT[copyBuffer[num].b];
+			break;
+		case WS2811_GBR:
+			color = ditheredLUT[copyBuffer[num].r] | ditheredLUT[copyBuffer[num].g] << 16 | ditheredLUT[copyBuffer[num].b] << 8;
+			break;
+		case WS2811_BRG:
+			color = ditheredLUT[copyBuffer[num].r] << 8 | ditheredLUT[copyBuffer[num].g] | ditheredLUT[copyBuffer[num].b] << 16;
+			break;
+		case WS2811_BGR:
+			color = ditheredLUT[copyBuffer[num].r] | ditheredLUT[copyBuffer[num].g] << 8 | ditheredLUT[copyBuffer[num].b] << 16;
+			break;
+		default:
+			color = ditheredLUT[copyBuffer[num].r] << 16 | ditheredLUT[copyBuffer[num].g] << 8 | ditheredLUT[copyBuffer[num].b];
+			break;
 		}
-		else {
-			*p &= ~bit;
+		strip = num / stripLen; // global strip idx
+		shiftreg = strip / 8;
+		strip_shift = 7 - strip % 8; // strip idx on shiftreg
+		offset = num % stripLen;
+
+		bit = (1 << shiftreg);
+		p = ((uint16_t *)frameBuffer) + offset * 192 + strip_shift;
+		for (mask = (1 << 23); mask; mask >>= 1) {
+			if (color & mask) {
+				*p |= bit;
+			}
+			else {
+				*p &= ~bit;
+			}
+			p += 8;
 		}
-		p += 8;
 	}
 }
 
 
 int MultiWS2811::getPixel(uint32_t num)
 {
-	uint32_t shiftreg, strip_shift, strip, offset, mask;
-	uint16_t bit, *p;
-	int color = 0;
-
-	strip = num / stripLen; // global strip idx
-	shiftreg = strip / 8;
-	strip_shift = 7 - strip % 8; // strip idx on shiftreg
-	offset = num % stripLen;
-
-	bit = (1 << shiftreg);
-	p = ((uint16_t *)drawBuffer) + offset * 192 + strip_shift;
-	for (mask = (1 << 23); mask; mask >>= 1) {
-		if (*p & bit) color |= mask;
-		p += 8;
-	}
-
-	switch (params & 7) {
-	case WS2811_RBG:
-		color = (color & 0xFF0000) | ((color << 8) & 0x00FF00) | ((color >> 8) & 0x0000FF);
-		break;
-	case WS2811_GRB:
-		color = ((color << 8) & 0xFF0000) | ((color >> 8) & 0x00FF00) | (color & 0x0000FF);
-		break;
-	case WS2811_GBR:
-		color = ((color << 8) & 0xFFFF00) | ((color >> 16) & 0x0000FF);
-		break;
-	case WS2811_BRG:
-		color = ((color << 16) & 0xFF0000) | ((color >> 8) & 0x00FFFF);
-		break;
-	case WS2811_BGR:
-		color = ((color << 16) & 0xFF0000) | (color & 0x00FF00) | ((color >> 16) & 0x0000FF);
-		break;
-	default:
-		break;
-	}
+	int color = *(int *)&drawBuffer[num] & 0x00FFFFFF;
 	return color;
 }

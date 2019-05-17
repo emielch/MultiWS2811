@@ -51,18 +51,29 @@
 
 #define MAX_TRANSFER_LEN	170  // limit imposed by DMA hardware, discussed here: https://forum.pjrc.com/threads/50839-need-help-with-large-screen?p=176730&viewfull=1#post176730
 
+struct COL_RGB {
+	uint8_t b, g, r;
+};
 
 class MultiWS2811 {
 public:
-	MultiWS2811(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config = WS2811_GRB);
+	MultiWS2811(uint32_t numPerStrip, void *frameBuf, COL_RGB *copyBuf, COL_RGB *drawBuf, uint8_t config = WS2811_GRB);
 	void begin(void);
-	void begin(uint32_t numPerStrip, void *frameBuf, void *drawBuf, uint8_t config = WS2811_GRB);
+	void begin(uint32_t numPerStrip, void *frameBuf, COL_RGB *copyBuf, COL_RGB *drawBuf, uint8_t config = WS2811_GRB);
 
-	void setPixel(uint32_t num, int color);
-	void setPixel(uint32_t num, uint8_t red, uint8_t green, uint8_t blue) {
-		setPixel(num, color(red, green, blue));
+	void setPixel(uint32_t num, int color) {
+		drawBuffer[num].b = color & 255;
+		drawBuffer[num].g = color >> 8 & 255;
+		drawBuffer[num].r = color >> 16 & 255;
 	}
+	void setPixel(uint32_t num, uint8_t red, uint8_t green, uint8_t blue) {
+		drawBuffer[num].r = red;
+		drawBuffer[num].g = green;
+		drawBuffer[num].b = blue;
+	}
+
 	int getPixel(uint32_t num);
+	COL_RGB getPixelRGB(uint32_t num) { return drawBuffer[num]; }
 
 	void show(void);
 	int busy(void);
@@ -78,12 +89,16 @@ public:
 private:
 	static MultiWS2811* multiWS2811;
 	static uint16_t stripLen;
+	static uint8_t ditherCycle;
 	static void *frameBuffer;
-	static void *drawBuffer;
+	static COL_RGB *copyBuffer;
+	static COL_RGB *drawBuffer;
 	static uint8_t params;
 	static DMAChannel dma1;
 	static uint16_t currentTransferEndLed;
+
 	static void isr(void);
+	static void fillFrameBuffer();
 	static void transfer(uint16_t fromLed);
 };
 
