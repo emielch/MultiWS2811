@@ -37,6 +37,7 @@ COL_RGB * MultiWS2811::drawBuffer;
 uint8_t MultiWS2811::params;
 DMAChannel MultiWS2811::dma1;
 uint16_t MultiWS2811::currentTransferEndLed;
+boolean MultiWS2811::fastDitherMode;
 
 static volatile uint8_t update_in_progress = 0;
 static volatile uint8_t update_ready = 0;
