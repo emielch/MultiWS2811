@@ -71,6 +71,9 @@ public:
 		drawBuffer[num].g = green;
 		drawBuffer[num].b = blue;
 	}
+	void setPixel(uint32_t num, COL_RGB color) {
+		drawBuffer[num] = color;
+	}
 
 	int getPixel(uint32_t num);
 	COL_RGB getPixelRGB(uint32_t num) { return drawBuffer[num]; }
