@@ -26,7 +26,7 @@
 #include "MultiWS2811.h"
 #include "gamma.h"
 
-#define _DEBUG
+//#define _DEBUG
 
 MultiWS2811* MultiWS2811::multiWS2811;
 uint16_t MultiWS2811::stripLen;
@@ -66,6 +66,8 @@ void MultiWS2811::begin(uint32_t numPerStrip, void *frameBuf, COL_RGB *copyBuf, 
 void MultiWS2811::begin(void)
 {
 	multiWS2811 = this;
+
+	fastDitherMode = false;
 	
 	uint32_t bufsize;
 	bufsize = stripLen * 384;
@@ -202,7 +204,7 @@ void MultiWS2811::isr(void)
 		update_completed_at = micros();
 		update_in_progress = 0;
 
-		if (!update_ready) {
+		if (fastDitherMode && !update_ready) {
 			fillFrameBuffer();
 			update_in_progress = 1;
 			transfer(0);

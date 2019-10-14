@@ -88,6 +88,7 @@ public:
 		return (red << 16) | (green << 8) | blue;
 	}
 
+	void setFastDitherMode(boolean mode) { fastDitherMode = mode; }
 
 private:
 	static MultiWS2811* multiWS2811;
@@ -99,6 +100,7 @@ private:
 	static uint8_t params;
 	static DMAChannel dma1;
 	static uint16_t currentTransferEndLed;
+	static boolean fastDitherMode;
 
 	static void isr(void);
 	static void fillFrameBuffer();
