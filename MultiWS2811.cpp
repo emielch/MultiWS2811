@@ -108,7 +108,7 @@ void MultiWS2811::begin(void)
 	// 6.6 MHz
 	FTM1_SC = 0;   // stop the timer // 45.4.3 Status And Control (FTMx_SC) p.1144
 	FTM1_CNT = 0;  // Writing any value to COUNT updates the counter with its initial value, CNTIN.  // 45.4.4 Counter (FTMx_CNT) p.1145
-	FTM1_MOD = 7;  // count to this value // 45.4.5 Modulo (FTMx_MOD) p.1146 // After the FTM counter reaches the modulo value, the overflow flag (TOF) becomes set at the next clock.
+	FTM1_MOD = 8;  // count to this value // 45.4.5 Modulo (FTMx_MOD) p.1146 // After the FTM counter reaches the modulo value, the overflow flag (TOF) becomes set at the next clock.
 	
 	// DMA trigger
 	FTM1_C0SC = FTM_CSC_MSB | FTM_CSC_ELSB | FTM_CSC_DMA | FTM_CSC_CHIE;   // 45.4.6 Channel (n) Status And Control (FTMx_CnSC) p.1147  // Edge-Aligned PWM - High-true pulses (clear Output on match) 
@@ -129,7 +129,7 @@ void MultiWS2811::begin(void)
 	
 	// Latch & Mux Switch
 	FTM2_C0SC = FTM_CSC_MSB | FTM_CSC_ELSB; // Edge-Aligned PWM - High-true pulses (clear Output on match) 
-	FTM2_C0V = (FTM2_MOD+1)*0.5;
+	FTM2_C0V = (FTM2_MOD+1)*0.3334;
 	CORE_PIN29_CONFIG = PORT_PCR_MUX(3);
 
 
@@ -140,7 +140,7 @@ void MultiWS2811::begin(void)
 	
 	// Up/Down
 	FTM3_C4SC = FTM_CSC_MSB | FTM_CSC_ELSA;  // Edge-Aligned PWM - Low-true pulses (set Output on match) 
-	FTM3_C4V = (FTM3_MOD+1)*0.5;
+	FTM3_C4V = (FTM3_MOD+1)*0.51389;
 	CORE_PIN35_CONFIG = PORT_PCR_MUX(3);
 
 
