@@ -52,7 +52,7 @@
 #define MAX_TRANSFER_LEN	170  // limit imposed by DMA hardware, discussed here: https://forum.pjrc.com/threads/50839-need-help-with-large-screen?p=176730&viewfull=1#post176730
 
 struct COL_RGB {
-	uint8_t b, g, r;
+	uint8_t r, g, b;
 };
 
 class MultiWS2811 {
