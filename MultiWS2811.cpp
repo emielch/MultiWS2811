@@ -250,6 +250,7 @@ void MultiWS2811::transfer(uint16_t fromLed)
 	int delayCount = FTM1_MOD * 4;
 
 	noInterrupts();
+	NVIC_DISABLE_IRQ(IRQ_SOFTWARE);  // fix when using audio library ( same as AudioNoInterrupts() )
 	
 	// make sure all timers are stopped
 	FTM1_SC = 0;  
@@ -291,6 +292,7 @@ void MultiWS2811::transfer(uint16_t fromLed)
 	if (fromLed == 0) digitalWriteFast(0, LOW); // oscilloscope trigger
 #endif
 	interrupts();
+	NVIC_ENABLE_IRQ(IRQ_SOFTWARE);
 }
 
 
