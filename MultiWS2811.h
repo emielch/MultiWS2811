@@ -53,6 +53,13 @@
 
 struct COL_RGB {
 	uint8_t r, g, b;
+
+	void add(COL_RGB c, float fadeFac) {
+		if (fadeFac <= 0.) return;
+		r = constrain(r + c.r*fadeFac, 0, 255);
+		g = constrain(g + c.g*fadeFac, 0, 255);
+		b = constrain(b + c.b*fadeFac, 0, 255);
+	}
 };
 
 class MultiWS2811 {
@@ -77,6 +84,7 @@ public:
 
 	int getPixel(uint32_t num);
 	COL_RGB getPixelRGB(uint32_t num) { return drawBuffer[num]; }
+	COL_RGB* getPixelPointer(uint32_t num) { return &drawBuffer[num]; }
 
 	void show(void);
 	int busy(void);
